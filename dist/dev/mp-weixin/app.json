@@ -1,0 +1,16 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/paint/paint",
+    "pages/gallery/gallery"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "涂色乐园",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#f7f7fb"
+  },
+  "lazyCodeLoading": "requiredComponents",
+  "permission": {},
+  "usingComponents": {}
+}
