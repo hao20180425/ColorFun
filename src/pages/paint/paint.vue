@@ -11,7 +11,7 @@
     3. 顶部操作栏：返回 / 标题 / 清空 / 保存
     4. 颜色面板：14 色圆形色块，选中态紫色描边 + 放大
     5. 线宽滑块：2 ~ 20
-    6. 保存到相册：canvasToTempFilePath + saveImageToPhotosAlbum
+    6. 保存到相册：canvas 导出 + saveImageToPhotosAlbum
 -->
 <template>
   <view class="paint-page">
@@ -587,56 +587,157 @@ function clearCanvas() {
 }
 
 /**
- * 保存画作到相册：
- *   1. canvasToTempFilePath 导出临时文件（Canvas 2D 必须传 canvas 字段）
- *   2. saveImageToPhotosAlbum 保存到相册（需用户授权）
+ * 保存画作到相册
  */
-function saveCanvas() {
-  if (!canvasNode) {
+function getCanvasComponentContext() {
+  if (!instance) return undefined
+  return instance.proxy || instance
+}
+
+function ensureAlbumPermission() {
+  return new Promise((resolve, reject) => {
+    uni.getSetting({
+      success: (res) => {
+        const auth = res.authSetting && res.authSetting['scope.writePhotosAlbum']
+        if (auth === true) {
+          resolve()
+          return
+        }
+        if (auth === false) {
+          reject({ needOpenSetting: true })
+          return
+        }
+        uni.authorize({
+          scope: 'scope.writePhotosAlbum',
+          success: () => resolve(),
+          fail: () => reject({ needOpenSetting: true })
+        })
+      },
+      fail: (err) => reject(err)
+    })
+  })
+}
+
+function promptOpenAlbumSetting() {
+  uni.showModal({
+    title: '需要相册权限',
+    content: '请在设置中允许保存图片到相册',
+    confirmText: '去设置',
+    success: (res) => {
+      if (res.confirm) uni.openSetting()
+    }
+  })
+}
+
+function canvasToTempFile(options) {
+  return new Promise((resolve, reject) => {
+    uni.canvasToTempFilePath({
+      ...options,
+      success: (res) => {
+        if (res && res.tempFilePath) resolve(res.tempFilePath)
+        else reject(new Error('empty temp file'))
+      },
+      fail: (err) => reject(err)
+    }, getCanvasComponentContext())
+  })
+}
+
+function exportCanvasViaDataURL() {
+  return new Promise((resolve, reject) => {
+    if (!canvasNode || typeof canvasNode.toDataURL !== 'function') {
+      reject(new Error('toDataURL not supported'))
+      return
+    }
+    let dataUrl = ''
+    try {
+      dataUrl = canvasNode.toDataURL('image/png')
+    } catch (err) {
+      reject(err)
+      return
+    }
+    if (!dataUrl || dataUrl.indexOf('base64,') < 0) {
+      reject(new Error('invalid dataURL'))
+      return
+    }
+    const base64 = dataUrl.split('base64,')[1]
+    const fs = uni.getFileSystemManager()
+    let basePath = ''
+    // #ifdef MP-WEIXIN
+    if (typeof wx !== 'undefined' && wx.env && wx.env.USER_DATA_PATH) {
+      basePath = wx.env.USER_DATA_PATH
+    }
+    // #endif
+    if (!basePath) {
+      reject(new Error('no user data path'))
+      return
+    }
+    const filePath = `${basePath}/paint_${Date.now()}.png`
+    fs.writeFile({
+      filePath,
+      data: base64,
+      encoding: 'base64',
+      success: () => resolve(filePath),
+      fail: (err) => reject(err)
+    })
+  })
+}
+
+function exportCanvasToTempFile() {
+  return exportCanvasViaDataURL().catch(() => canvasToTempFile({
+    canvas: canvasNode,
+    fileType: 'png',
+    quality: 1
+  })).catch(() => canvasToTempFile({
+    canvas: canvasNode,
+    x: 0,
+    y: 0,
+    width: canvasWidth,
+    height: canvasHeight,
+    destWidth: canvasWidth,
+    destHeight: canvasHeight,
+    fileType: 'png',
+    quality: 1
+  }))
+}
+
+function saveTempFileToAlbum(filePath) {
+  return new Promise((resolve, reject) => {
+    uni.saveImageToPhotosAlbum({
+      filePath,
+      success: () => resolve(),
+      fail: (err) => reject(err)
+    })
+  })
+}
+
+function isAuthOrPrivacyError(err) {
+  const msg = (err && err.errMsg) || ''
+  return msg.indexOf('auth') >= 0
+    || msg.indexOf('privacy') >= 0
+    || msg.indexOf('authorize') >= 0
+}
+
+async function saveCanvas() {
+  if (!canvasNode || !ctx || !canvasWidth || !canvasHeight) {
     uni.showToast({ title: '画布未就绪', icon: 'none' })
     return
   }
-  uni.canvasToTempFilePath(
-    {
-      canvas: canvasNode,
-      x: 0,
-      y: 0,
-      width: cssWidth,
-      height: cssHeight,
-      destWidth: Math.floor(cssWidth * dpr),
-      destHeight: Math.floor(cssHeight * dpr),
-      fileType: 'png',
-      success: (res) => {
-        uni.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
-          success: () => {
-            uni.showToast({ title: '保存成功' })
-          },
-          fail: (err) => {
-            const isAuth = err && err.errMsg && err.errMsg.indexOf('auth') >= 0
-            if (isAuth) {
-              uni.showModal({
-                title: '需要相册权限',
-                content: '请在设置中允许保存图片到相册',
-                confirmText: '去设置',
-                success: (modalRes) => {
-                  if (modalRes.confirm) {
-                    uni.openSetting()
-                  }
-                }
-              })
-              return
-            }
-            uni.showToast({ title: '保存失败', icon: 'none' })
-          }
-        })
-      },
-      fail: () => {
-        uni.showToast({ title: '导出失败', icon: 'none' })
-      }
-    },
-    instance.proxy
-  )
+
+  uni.showLoading({ title: '保存中...', mask: true })
+  try {
+    await ensureAlbumPermission()
+    const tempFilePath = await exportCanvasToTempFile()
+    await saveTempFileToAlbum(tempFilePath)
+    uni.showToast({ title: '保存成功' })
+  } catch (err) {
+    if ((err && err.needOpenSetting) || isAuthOrPrivacyError(err)) {
+      promptOpenAlbumSetting()
+    } else {
+      uni.showToast({ title: '保存失败', icon: 'none' })
+    }
+  } finally {
+    uni.hideLoading()
+  }
 }
 
 function goBack() {

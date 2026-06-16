@@ -155,7 +155,16 @@ import { ref } from 'vue'
  * ===================================================================== */
 const builtinLinearts = [
   { name: '花朵', path: '/static/linearts/flower.jpg' },
-  { name: '飞机', path: '/static/linearts/Airplane.jpg' }
+  { name: '飞机', path: '/static/linearts/Airplane.jpg' },
+  { name: '端午节主题', path: '/static/linearts/dragon-boat-theme.jpg' },
+  { name: '奥特曼', path: '/static/linearts/ultraman.jpg' },
+  { name: '儿童简笔画', path: '/static/linearts/kids-sketch.jpg' },
+  { name: '大耳朵图图', path: '/static/linearts/big-ear-tutu.jpg' },
+  { name: '疯狂动物城', path: '/static/linearts/zootopia.jpg' },
+  { name: '端午节涂色', path: '/static/linearts/dragon-boat-coloring.jpg' },
+  { name: '端午节线稿', path: '/static/linearts/dragon-boat-lineart.jpg' },
+  { name: '蛋仔', path: '/static/linearts/eggy-party.jpg' },
+  { name: '蛋糕', path: '/static/linearts/cake.jpg' }
 ]
 
 /* 缩略图加载失败记录：path -> true */

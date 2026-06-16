@@ -178,8 +178,17 @@ const categoryList = [
  *    - 其余条目暂时保留占位图路径，加载失败时由 onThumbError 切到占位
  * ===================================================================== */
 const draftList = [
-  { name: '花朵',       img: '/static/linearts/flower.jpg' },
-  { name: '飞机',       img: '/static/linearts/Airplane.jpg' }
+  { name: '花朵',         img: '/static/linearts/flower.jpg' },
+  { name: '飞机',         img: '/static/linearts/Airplane.jpg' },
+  { name: '端午节主题',   img: '/static/linearts/dragon-boat-theme.jpg' },
+  { name: '奥特曼',       img: '/static/linearts/ultraman.jpg' },
+  { name: '儿童简笔画',   img: '/static/linearts/kids-sketch.jpg' },
+  { name: '大耳朵图图',   img: '/static/linearts/big-ear-tutu.jpg' },
+  { name: '疯狂动物城',   img: '/static/linearts/zootopia.jpg' },
+  { name: '端午节涂色',   img: '/static/linearts/dragon-boat-coloring.jpg' },
+  { name: '端午节线稿',   img: '/static/linearts/dragon-boat-lineart.jpg' },
+  { name: '蛋仔',         img: '/static/linearts/eggy-party.jpg' },
+  { name: '蛋糕',         img: '/static/linearts/cake.jpg' }
 ]
 
 /* 缩略图加载失败记录：path -> true，模板自动切到 emoji 占位 */
@@ -394,16 +403,14 @@ page {
 }
 
 .draft-grid {
-  display: flex;
-  flex-wrap: wrap;
-  /* 左对齐排列，避免少量卡片时 space-between 导致两端分散 */
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16rpx;
   padding: 0 4rpx;
 }
 
 .draft-card {
-  width: 31.5%;
+  width: auto;
   background: $color-card;
   border-radius: 22rpx;
   overflow: hidden;

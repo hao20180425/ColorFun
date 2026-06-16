@@ -22,9 +22,15 @@
 
 ## 资源要求
 
+- **目录内所有线稿合计不超过 200K**（可用 `npm run check:linearts` 校验）
 - 推荐格式：JPG（体积小），也支持 PNG
 - 线稿图请使用纯黑线 + 纯白底，方便油漆桶填色识别封闭区域
 - 文件名建议使用英文（如 `flower.jpg`、`Airplane.jpg`）
+- 入库前建议压缩：长边 ≤ 512px，JPG 质量 38；新增后务必跑校验确认总量未超标
+  ```bash
+  sips -Z 512 -s format jpeg -s formatOptions 38 原图.jpg --out src/static/linearts/新文件名.jpg
+  npm run check:linearts
+  ```
 
 ## 优雅降级
 
