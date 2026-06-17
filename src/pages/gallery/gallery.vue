@@ -26,8 +26,8 @@
       </view>
     </view>
 
-    <!-- 搜索框 -->
-    <view class="search-box">
+    <!-- 搜索框（暂隐藏） -->
+    <view v-if="showSearch" class="search-box">
       <text class="search-icon">🔍</text>
       <input
         class="search-input"
@@ -150,6 +150,7 @@ try {
 /* =====================================================================
  * 2) 搜索关键字 + 顶部 Tab + 当前分类
  * ===================================================================== */
+const showSearch = false
 const keyword = ref('')
 const topTabs = ['全部', '最新']
 const activeTab = ref(0)
@@ -178,15 +179,14 @@ const categoryList = [
  *    - 其余条目暂时保留占位图路径，加载失败时由 onThumbError 切到占位
  * ===================================================================== */
 const draftList = [
+  { name: '端午节主题',   img: '/static/linearts/dragon-boat-theme.jpg' },
+  { name: '端午节涂色',   img: '/static/linearts/dragon-boat-coloring.jpg' },
   { name: '花朵',         img: '/static/linearts/flower.jpg' },
   { name: '飞机',         img: '/static/linearts/Airplane.jpg' },
-  { name: '端午节主题',   img: '/static/linearts/dragon-boat-theme.jpg' },
   { name: '奥特曼',       img: '/static/linearts/ultraman.jpg' },
   { name: '儿童简笔画',   img: '/static/linearts/kids-sketch.jpg' },
   { name: '大耳朵图图',   img: '/static/linearts/big-ear-tutu.jpg' },
   { name: '疯狂动物城',   img: '/static/linearts/zootopia.jpg' },
-  { name: '端午节涂色',   img: '/static/linearts/dragon-boat-coloring.jpg' },
-  { name: '端午节线稿',   img: '/static/linearts/dragon-boat-lineart.jpg' },
   { name: '蛋仔',         img: '/static/linearts/eggy-party.jpg' },
   { name: '蛋糕',         img: '/static/linearts/cake.jpg' }
 ]

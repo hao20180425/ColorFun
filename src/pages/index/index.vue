@@ -154,15 +154,14 @@ import { ref } from 'vue'
  *   2) 在数组中追加 { name: '显示名', path: '/static/linearts/<file>' }
  * ===================================================================== */
 const builtinLinearts = [
+  { name: '端午节主题', path: '/static/linearts/dragon-boat-theme.jpg' },
+  { name: '端午节涂色', path: '/static/linearts/dragon-boat-coloring.jpg' },
   { name: '花朵', path: '/static/linearts/flower.jpg' },
   { name: '飞机', path: '/static/linearts/Airplane.jpg' },
-  { name: '端午节主题', path: '/static/linearts/dragon-boat-theme.jpg' },
   { name: '奥特曼', path: '/static/linearts/ultraman.jpg' },
   { name: '儿童简笔画', path: '/static/linearts/kids-sketch.jpg' },
   { name: '大耳朵图图', path: '/static/linearts/big-ear-tutu.jpg' },
   { name: '疯狂动物城', path: '/static/linearts/zootopia.jpg' },
-  { name: '端午节涂色', path: '/static/linearts/dragon-boat-coloring.jpg' },
-  { name: '端午节线稿', path: '/static/linearts/dragon-boat-lineart.jpg' },
   { name: '蛋仔', path: '/static/linearts/eggy-party.jpg' },
   { name: '蛋糕', path: '/static/linearts/cake.jpg' }
 ]
@@ -171,26 +170,14 @@ const builtinLinearts = [
 const failedThumbs = ref({})
 
 /* =====================================================================
- * 2) 相册导入：调起系统相册让用户选一张图，然后带路径跳到绘画页
+ * 2) 相册导入：功能开发中，弹窗提示
  * ===================================================================== */
 function chooseAlbum() {
-  uni.chooseImage({
-    count: 1,
-    sourceType: ['album'],
-    success: (res) => {
-      const imgPath = res && res.tempFilePaths && res.tempFilePaths[0]
-      if (!imgPath) return
-      uni.navigateTo({
-        url: '/pages/paint/paint?img=' + encodeURIComponent(imgPath)
-      })
-    },
-    fail: (err) => {
-      // 用户主动取消不算异常
-      if (err && err.errMsg && !/cancel/i.test(err.errMsg)) {
-        console.error('[Album] 选图失败:', err)
-        uni.showToast({ title: '打开相册失败', icon: 'none' })
-      }
-    }
+  uni.showModal({
+    title: '相册导入',
+    content: '功能开发中，敬请期待～',
+    showCancel: false,
+    confirmText: '知道了'
   })
 }
 
