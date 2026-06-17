@@ -1,22 +1,10 @@
 <!--
-  pages/gallery/gallery.vue
-  ----------------------------------------------------------------
-  内置线稿库页面（第三个页面）
-  ----------------------------------------------------------------
-  功能要点：
-    1. 自定义导航栏：状态栏占位 + 胶囊行（避让微信右上胶囊）
-    2. 顶部搜索框：按名称模糊过滤 draftList
-    3. 顶部 Tab：全部 / 最新（仅视觉切换，不参与过滤）
-    4. 左侧分类菜单：带 emoji 图标，点击切换激活态
-    5. 右侧 3 列线稿网格：点击跳 paint 页（带 encodeURIComponent 路径）
-    6. 主题：紫色 #7b61ff + 浅紫底 #f7f7fb + 白色卡片大圆角
+  内置线稿库：搜索 / Tab / 左侧分类 + 右侧网格（分类过滤后续开发）
 -->
 <template>
   <view class="page">
-    <!-- 状态栏占位：高度 = 系统状态栏高度 -->
     <view :style="{ height: statusBarHeight + 'px' }"></view>
 
-    <!-- 顶部胶囊行：左侧返回 + 标题，右侧给微信原生胶囊留位 -->
     <view class="header" :style="headerStyle">
       <view class="left-box">
         <view class="back" hover-class="hover-light" @tap="goBack">
@@ -26,7 +14,7 @@
       </view>
     </view>
 
-    <!-- 搜索框（暂隐藏） -->
+    <!-- 搜索框（showSearch 控制显示，后续可开启） -->
     <view v-if="showSearch" class="search-box">
       <text class="search-icon">🔍</text>
       <input
@@ -37,7 +25,7 @@
       />
     </view>
 
-    <!-- 顶部 Tab：全部 / 最新 + 右侧布局按钮 -->
+    <!-- 顶部 Tab：全部 / 最新 + 布局按钮（Tab 过滤后续开发） -->
     <view class="top-tabs">
       <view
         v-for="(tab, i) in topTabs"
@@ -53,7 +41,6 @@
 
     <!-- 主体：左侧分类 + 右侧网格 -->
     <view class="content">
-      <!-- 左侧分类菜单 -->
       <scroll-view class="sidebar" scroll-y>
         <view
           class="menu-item"
@@ -73,21 +60,20 @@
         </view>
       </scroll-view>
 
-      <!-- 右侧线稿网格 -->
       <scroll-view class="draft-scroll" scroll-y>
         <view class="draft-grid">
           <view
-            v-for="(item, index) in filterList"
-            :key="index"
+            v-for="item in filterList"
+            :key="item.path"
             class="draft-card"
             hover-class="card-hover"
             @tap="goPaint(item)"
           >
             <view class="draft-thumb">
               <image
-                v-if="!failedThumbs[item.img]"
+                v-if="!failedThumbs[item.path]"
                 class="draft-img"
-                :src="item.img"
+                :src="item.path"
                 mode="aspectFill"
                 @error="onThumbError(item)"
               />
@@ -111,17 +97,9 @@
 </template>
 
 <script setup>
-/* =====================================================================
- * pages/gallery/gallery.vue —— 内置线稿库
- * Vue 3 Composition API（<script setup>）
- * ===================================================================== */
 import { ref, computed } from 'vue'
+import { linearts } from '@/data/linearts.js'
 
-/* =====================================================================
- * 1) 自定义导航栏：状态栏高度 + 胶囊避让
- *    - statusBarHeight: 状态栏占位高度（px）
- *    - headerStyle: 胶囊行高度 + 右侧留出胶囊宽度（避免遮挡）
- * ===================================================================== */
 const statusBarHeight = ref(0)
 const headerStyle = ref({})
 
@@ -134,7 +112,6 @@ try {
     : null
   if (capsule && capsule.top && capsule.bottom) {
     const capsuleH = capsule.bottom - capsule.top
-    // 胶囊行高度 = 胶囊高度；右侧 padding 留出胶囊宽度，避免标题撞到胶囊
     headerStyle.value = {
       height: capsuleH + 'px',
       paddingRight: (_info.windowWidth - capsule.left + 4) + 'px'
@@ -147,19 +124,12 @@ try {
   headerStyle.value = { height: '44px' }
 }
 
-/* =====================================================================
- * 2) 搜索关键字 + 顶部 Tab + 当前分类
- * ===================================================================== */
 const showSearch = false
 const keyword = ref('')
 const topTabs = ['全部', '最新']
 const activeTab = ref(0)
-// 当前选中分类：-1 表示「全部」，>=0 对应 categoryList 索引
 const activeCategory = ref(-1)
 
-/* =====================================================================
- * 3) 分类列表（左侧菜单数据）
- * ===================================================================== */
 const categoryList = [
   { name: '可爱', icon: '🐰' },
   { name: '奇幻', icon: '🦄' },
@@ -173,67 +143,33 @@ const categoryList = [
   { name: '其他', icon: '⭐' }
 ]
 
-/* =====================================================================
- * 4) 线稿数据
- *    - flower / Airplane 使用项目内真实资源（src/static/linearts/）
- *    - 其余条目暂时保留占位图路径，加载失败时由 onThumbError 切到占位
- * ===================================================================== */
-const draftList = [
-  { name: '端午节主题',   img: '/static/linearts/dragon-boat-theme.jpg' },
-  { name: '端午节涂色',   img: '/static/linearts/dragon-boat-coloring.jpg' },
-  { name: '花朵',         img: '/static/linearts/flower.jpg' },
-  { name: '飞机',         img: '/static/linearts/Airplane.jpg' },
-  { name: '奥特曼',       img: '/static/linearts/ultraman.jpg' },
-  { name: '儿童简笔画',   img: '/static/linearts/kids-sketch.jpg' },
-  { name: '大耳朵图图',   img: '/static/linearts/big-ear-tutu.jpg' },
-  { name: '疯狂动物城',   img: '/static/linearts/zootopia.jpg' },
-  { name: '蛋仔',         img: '/static/linearts/eggy-party.jpg' },
-  { name: '蛋糕',         img: '/static/linearts/cake.jpg' }
-]
-
-/* 缩略图加载失败记录：path -> true，模板自动切到 emoji 占位 */
 const failedThumbs = ref({})
 
 function onThumbError(item) {
-  if (!item || !item.img) return
-  console.warn('[Gallery] 线稿缩略图加载失败:', item.img)
-  failedThumbs.value[item.img] = true
+  if (!item || !item.path) return
+  failedThumbs.value[item.path] = true
 }
 
-/* =====================================================================
- * 5) 过滤列表：按关键字模糊匹配名称
- *    （分类暂未参与过滤，draftList 数据未带 category 字段；后续补齐）
- * ===================================================================== */
+// 当前仅关键字过滤；activeTab / activeCategory 待后续接入
 const filterList = computed(() => {
   const kw = keyword.value.trim()
-  if (!kw) return draftList
-  return draftList.filter(item => item.name.includes(kw))
+  if (!kw) return linearts
+  return linearts.filter(item => item.name.includes(kw))
 })
 
-/* =====================================================================
- * 6) 交互：返回 / 跳转绘画页
- * ===================================================================== */
 function goBack() {
   uni.navigateBack()
 }
 
 function goPaint(item) {
-  if (!item || !item.img) return
-  // 用 encodeURIComponent 编码路径，避免特殊字符导致 query 解析失败
+  if (!item || !item.path) return
   uni.navigateTo({
-    url: '/pages/paint/paint?img=' + encodeURIComponent(item.img)
+    url: '/pages/paint/paint?img=' + encodeURIComponent(item.path)
   })
 }
 </script>
 
 <style lang="scss" scoped>
-/* =====================================================================
- * 设计语言：与首页/绘画页保持一致
- *   - 主色：#7b61ff
- *   - 背景：#f7f7fb
- *   - 卡片：白底 + 大圆角
- * ===================================================================== */
-
 $color-primary:   #7b61ff;
 $color-primary-2: #efe8ff;
 $color-bg:        #f7f7fb;
@@ -253,12 +189,10 @@ page {
   font-family: 'PingFang SC', 'PingFangSC-Regular', sans-serif;
 }
 
-/* ---------- 顶部胶囊行 ---------- */
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* height / paddingRight 由 headerStyle 动态注入 */
 }
 
 .left-box {
@@ -297,7 +231,6 @@ page {
   letter-spacing: 1rpx;
 }
 
-/* ---------- 搜索框 ---------- */
 .search-box {
   height: 80rpx;
   background: $color-card;
@@ -325,7 +258,6 @@ page {
   }
 }
 
-/* ---------- 顶部 Tab ---------- */
 .top-tabs {
   display: flex;
   align-items: center;
@@ -364,15 +296,12 @@ page {
   color: $color-primary;
 }
 
-/* ---------- 主体：左侧 + 右侧 ---------- */
 .content {
   display: flex;
   margin-top: 24rpx;
-  /* 视口高度 - 顶部各区域估算高度，保证两侧 scroll-view 有高度 */
   height: calc(100vh - 320rpx);
 }
 
-/* 左侧分类菜单 */
 .sidebar {
   width: 150rpx;
   flex-shrink: 0;
@@ -395,7 +324,6 @@ page {
   }
 }
 
-/* 右侧线稿网格 */
 .draft-scroll {
   flex: 1;
   height: 100%;

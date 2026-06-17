@@ -26,10 +26,9 @@
  * ------------------------------------------------------------------
  */
 
-/** 拒绝原因（供 UI 提示） */
-export const FloodFillRejectReason = {
+/** 内部拒绝原因 */
+const RejectReason = {
     ON_LINE: 'on_line',
-    SAME_COLOR: 'same_color',
     OUT_OF_BOUNDS: 'out_of_bounds'
 };
 
@@ -186,7 +185,7 @@ function createFloodFillState(data, width, height, startX, startY, fillColor, to
         startX < 0 || startX >= width ||
         startY < 0 || startY >= height
     ) {
-        return { reason: FloodFillRejectReason.OUT_OF_BOUNDS };
+        return { reason: RejectReason.OUT_OF_BOUNDS };
     }
 
     const sx = Math.floor(startX);
@@ -204,7 +203,7 @@ function createFloodFillState(data, width, height, startX, startY, fillColor, to
     const targetA = data[startIndex + 3];
 
     if (isStartPointOnLine(data, width, height, sx, sy, targetR, targetG, targetB, targetA, tolerance)) {
-        return { reason: FloodFillRejectReason.ON_LINE };
+        return { reason: RejectReason.ON_LINE };
     }
 
     const visited = new Uint8Array(width * height);
@@ -312,35 +311,13 @@ function floodFillProcessBatch(state, maxOps) {
 export function createFloodFillTask(data, width, height, startX, startY, fillColor, tolerance = 12) {
     const result = createFloodFillState(data, width, height, startX, startY, fillColor, tolerance);
     if (result.reason) {
-        return { task: null, reason: result.reason };
+        return null;
     }
     const state = result.state;
     return {
-        task: {
-            step(maxOps = DEFAULT_BATCH_OPS) {
-                return floodFillProcessBatch(state, maxOps);
-            }
-        },
-        reason: null
+        step(maxOps = DEFAULT_BATCH_OPS) {
+            return floodFillProcessBatch(state, maxOps);
+        }
     };
 }
-
-export function floodFill(data, width, height, startX, startY, fillColor, tolerance = 12) {
-    const result = createFloodFillState(data, width, height, startX, startY, fillColor, tolerance);
-    if (result.reason) {
-        return data;
-    }
-    const state = result.state;
-    while (!floodFillProcessBatch(state, Infinity)) {
-        // 同步模式：一次跑完
-    }
-    return data;
-}
-
-/* =====================================================================
- * 辅助导出：亮度计算 / 颜色比较 / 线条判定
- * （便于在测试或其他模块中复用，按需导入即可）
- *
- * 注意：线稿边界通过「深色且与目标色不同」判定，已填色区域可被新颜色覆盖。
- * ===================================================================== */
 

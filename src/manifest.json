@@ -26,6 +26,10 @@
     },
     "usingComponents": true,
     "lazyCodeLoading": "requiredComponents",
-    "permission": {}
+    "permission": {
+      "scope.writePhotosAlbum": {
+        "desc": "用于将涂色作品保存到您的手机相册"
+      }
+    }
   }
 }

@@ -140,31 +140,13 @@
  * ---------------------------------------------------------------------
  * 首页 —— 线稿选择入口页面
  *   - 顶部 Logo + Banner 标语
- *   - 「相册导入」：调用 uni.chooseImage，选完跳 paint 页
- *   - 「内置线稿」：在底部网格中直接展示，点缩略图跳 paint 页
- *   - 所有跳转都带 ?img=<encodeURIComponent(path)> 参数
+ *   - 「相册导入」：功能开发中，弹窗提示
+ *   - 「内置线稿」：跳转线稿库页；热门推荐网格共用 data/linearts.js
  * ===================================================================== */
 import { ref } from 'vue'
+import { linearts } from '@/data/linearts.js'
 
-/* =====================================================================
- * 1) 内置线稿列表（与上一版保持一致，文件位于 src/static/linearts/）
- * ---------------------------------------------------------------------
- * 新增线稿步骤：
- *   1) 把图片放到 src/static/linearts/
- *   2) 在数组中追加 { name: '显示名', path: '/static/linearts/<file>' }
- * ===================================================================== */
-const builtinLinearts = [
-  { name: '端午节主题', path: '/static/linearts/dragon-boat-theme.jpg' },
-  { name: '端午节涂色', path: '/static/linearts/dragon-boat-coloring.jpg' },
-  { name: '花朵', path: '/static/linearts/flower.jpg' },
-  { name: '飞机', path: '/static/linearts/Airplane.jpg' },
-  { name: '奥特曼', path: '/static/linearts/ultraman.jpg' },
-  { name: '儿童简笔画', path: '/static/linearts/kids-sketch.jpg' },
-  { name: '大耳朵图图', path: '/static/linearts/big-ear-tutu.jpg' },
-  { name: '疯狂动物城', path: '/static/linearts/zootopia.jpg' },
-  { name: '蛋仔', path: '/static/linearts/eggy-party.jpg' },
-  { name: '蛋糕', path: '/static/linearts/cake.jpg' }
-]
+const builtinLinearts = linearts
 
 /* 缩略图加载失败记录：path -> true */
 const failedThumbs = ref({})
@@ -222,14 +204,12 @@ function onThumbError(item) {
 
 /* ---------- 设计变量 ---------- */
 $color-primary:   #7b61ff;
-$color-primary-2: #9d8bff;
 $color-bg:        #f7f7fb;
 $color-card:      #ffffff;
 $color-text:      #1f1f2c;
 $color-sub:       #8a8aa3;
 
 $radius-card:     30rpx;
-$radius-pill:     999rpx;
 
 $shadow-card:     0 8rpx 24rpx rgba(123, 97, 255, 0.06);
 $shadow-soft:     0 6rpx 18rpx rgba(31, 31, 44, 0.05);

@@ -115,6 +115,7 @@
 import { ref, getCurrentInstance, nextTick, onMounted, onUnmounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { createFloodFillTask } from '@/utils/floodFill.js'
+import { saveImageToAlbum } from '@/utils/saveToAlbum.js'
 
 /* =====================================================================
  * 响应式状态
@@ -493,7 +494,7 @@ function doFloodFill(cx, cy) {
   }
 
   const fillRGBA = hexToRGBA(currentColor.value)
-  const { task } = createFloodFillTask(
+  const task = createFloodFillTask(
     imageData.data,
     canvasWidth,
     canvasHeight,
@@ -589,7 +590,7 @@ function clearCanvas() {
 /**
  * 保存画作到相册：
  *   1. canvasToTempFilePath 导出临时文件（Canvas 2D 必须传 canvas 字段）
- *   2. saveImageToPhotosAlbum 保存到相册（由 API 自行处理授权弹窗）
+ *   2. saveImageToAlbum 同步隐私授权后写入相册
  */
 function saveCanvas() {
   if (!canvasNode) {
@@ -607,32 +608,11 @@ function saveCanvas() {
       destHeight: Math.floor(cssHeight * dpr),
       fileType: 'png',
       success: (res) => {
-        uni.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
-          success: () => {
+        saveImageToAlbum(res.tempFilePath)
+          .then(() => {
             uni.showToast({ title: '保存成功' })
-          },
-          fail: (err) => {
-            const msg = (err && err.errMsg) || ''
-            const isAuth = msg.indexOf('auth') >= 0
-              || msg.indexOf('privacy') >= 0
-              || msg.indexOf('authorize') >= 0
-            if (isAuth) {
-              uni.showModal({
-                title: '需要相册权限',
-                content: '请在设置中允许保存图片到相册',
-                confirmText: '去设置',
-                success: (modalRes) => {
-                  if (modalRes.confirm) {
-                    uni.openSetting()
-                  }
-                }
-              })
-              return
-            }
-            uni.showToast({ title: '保存失败', icon: 'none' })
-          }
-        })
+          })
+          .catch(() => {})
       },
       fail: () => {
         uni.showToast({ title: '导出失败', icon: 'none' })

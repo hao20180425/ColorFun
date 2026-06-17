@@ -3,8 +3,7 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": false
+        "navigationStyle": "custom"
       }
     },
     {
@@ -17,15 +16,11 @@
     {
       "path": "pages/gallery/gallery",
       "style": {
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": false
+        "navigationStyle": "custom"
       }
     }
   ],
   "globalStyle": {
-    "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "涂色乐园",
-    "navigationBarBackgroundColor": "#FFFFFF",
     "backgroundColor": "#f7f7fb"
   }
 }
