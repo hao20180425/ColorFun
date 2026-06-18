@@ -112,7 +112,6 @@
 </template>
 
 <script setup>
-/* eslint-disable camelcase */
 import { ref, getCurrentInstance, nextTick, onMounted, onUnmounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { createFloodFillTask } from '@/utils/floodFill.js'
@@ -211,7 +210,6 @@ onLoad((options) => {
 
 // onMounted 后初始化 Canvas（需等待节点渲染完成）
 onMounted(() => {
-  setupSavePrivacyListener()
   nextTick(() => {
     initTimer = setTimeout(() => {
       initTimer = null
@@ -592,179 +590,6 @@ function clearCanvas() {
  * 保存到相册
  * ===================================================================== */
 
-const ALBUM_SCOPE = 'scope.writePhotosAlbum'
-let privacyResolve = null
-let privacyListenerReady = false
-
-function getWx() {
-  // #ifdef MP-WEIXIN
-  return typeof wx !== 'undefined' ? wx : null
-  // #endif
-  // #ifndef MP-WEIXIN
-  return null
-  // #endif
-}
-
-function setupSavePrivacyListener() {
-  if (privacyListenerReady) return
-  // #ifdef MP-WEIXIN
-  const wxApi = getWx()
-  if (!wxApi || !wxApi.onNeedPrivacyAuthorization) return
-  wxApi.onNeedPrivacyAuthorization((resolve) => {
-    privacyResolve = resolve
-    uni.showModal({
-      title: '用户隐私保护提示',
-      content: '保存图片等功能需要您阅读并同意《用户隐私保护指引》',
-      confirmText: '同意',
-      cancelText: '拒绝',
-      success: (res) => {
-        if (!privacyResolve) return
-        privacyResolve({ event: res.confirm ? 'agree' : 'disagree' })
-        privacyResolve = null
-      },
-      fail: () => {
-        if (privacyResolve) {
-          privacyResolve({ event: 'disagree' })
-          privacyResolve = null
-        }
-      }
-    })
-  })
-  privacyListenerReady = true
-  // #endif
-}
-
-function requirePrivacyAuthorize() {
-  return new Promise((resolve, reject) => {
-    const wxApi = getWx()
-    if (wxApi && wxApi.requirePrivacyAuthorize) {
-      wxApi.requirePrivacyAuthorize({
-        success: () => resolve(),
-        fail: (err) => reject(err || { errMsg: 'requirePrivacyAuthorize:fail' })
-      })
-      return
-    }
-    resolve()
-  })
-}
-
-function getAlbumAuthStatus() {
-  return new Promise((resolve, reject) => {
-    uni.getSetting({
-      success: (res) => {
-        const authSetting = res.authSetting || {}
-        resolve(authSetting[ALBUM_SCOPE])
-      },
-      fail: (err) => reject(err || { errMsg: 'getSetting:fail' })
-    })
-  })
-}
-
-function requestAlbumAuthorize() {
-  return new Promise((resolve, reject) => {
-    uni.authorize({
-      scope: ALBUM_SCOPE,
-      success: () => resolve(),
-      fail: (err) => reject(err || { errMsg: 'authorize:fail' })
-    })
-  })
-}
-
-function promptOpenSetting() {
-  return new Promise((resolve, reject) => {
-    uni.showModal({
-      title: '授权提示',
-      content: '需要您授权保存图片到相册，是否去设置中打开？',
-      success: (modalRes) => {
-        if (!modalRes.confirm) {
-          reject({ errMsg: 'auth deny', handled: true })
-          return
-        }
-        uni.openSetting({
-          success: (settingRes) => {
-            const authSetting = settingRes.authSetting || {}
-            if (authSetting[ALBUM_SCOPE]) {
-              resolve()
-              return
-            }
-            uni.showToast({ title: '您拒绝了授权', icon: 'none' })
-            reject({ errMsg: 'auth deny', handled: true })
-          },
-          fail: (err) => reject(err || { errMsg: 'openSetting:fail' })
-        })
-      }
-    })
-  })
-}
-
-function ensureAlbumAuth() {
-  return getAlbumAuthStatus().then((authStatus) => {
-    if (authStatus === true) return
-    if (authStatus === false) return promptOpenSetting()
-    return requestAlbumAuthorize().catch((err) => {
-      uni.showToast({ title: '授权失败，无法保存', icon: 'none' })
-      return Promise.reject(err)
-    })
-  })
-}
-
-function saveFileToAlbum(filePath) {
-  return new Promise((resolve, reject) => {
-    uni.saveImageToPhotosAlbum({
-      filePath,
-      success: () => resolve(),
-      fail: (err) => reject(err || { errMsg: 'saveImageToPhotosAlbum:fail' })
-    })
-  })
-}
-
-function showSaveError(err) {
-  if (err && err.handled) return
-  const msg = (err && err.errMsg) || ''
-  if (msg.indexOf('privacy') >= 0 || msg.indexOf('banned') >= 0 || msg.indexOf('not declared') >= 0) {
-    uni.showModal({
-      title: '需要隐私授权',
-      content: '保存图片需同意《用户隐私保护指引》。请阅读并同意隐私协议后重试。',
-      confirmText: '查看协议',
-      success: (res) => {
-        if (!res.confirm) return
-        const wxApi = getWx()
-        if (wxApi && wxApi.openPrivacyContract) wxApi.openPrivacyContract()
-      }
-    })
-    return
-  }
-  if (msg.indexOf('auth') >= 0 || msg.indexOf('deny') >= 0) {
-    uni.showModal({
-      title: '需要相册权限',
-      content: '请在设置中允许保存图片到相册',
-      confirmText: '去设置',
-      success: (res) => {
-        if (res.confirm) uni.openSetting()
-      }
-    })
-    return
-  }
-  uni.showToast({ title: '保存失败', icon: 'none' })
-}
-
-function saveImageToAlbum(filePath) {
-  uni.showLoading({ title: '正在保存...', mask: true })
-  return requirePrivacyAuthorize()
-    .then(() => ensureAlbumAuth())
-    .then(() => saveFileToAlbum(filePath))
-    .then(() => {
-      uni.showToast({ title: '保存成功', icon: 'success' })
-    })
-    .catch((err) => {
-      showSaveError(err)
-      return Promise.reject(err)
-    })
-    .finally(() => {
-      uni.hideLoading()
-    })
-}
-
 function saveCanvas() {
   if (!canvasNode) {
     uni.showToast({ title: '画布未就绪', icon: 'none' })
@@ -781,7 +606,7 @@ function saveCanvas() {
       destHeight: Math.floor(cssHeight * dpr),
       fileType: 'png',
       success: (res) => {
-        saveImageToAlbum(res.tempFilePath).catch(() => {})
+        checkAuthAndSave(res.tempFilePath)
       },
       fail: () => {
         uni.showToast({ title: '导出失败', icon: 'none' })
@@ -789,6 +614,60 @@ function saveCanvas() {
     },
     instance.proxy
   )
+}
+
+function checkAuthAndSave(filePath) {
+  uni.getSetting({
+    success: (res) => {
+      const authStatus = res.authSetting['scope.writePhotosAlbum']
+      if (authStatus === true) {
+        saveToAlbum(filePath)
+      } else if (authStatus === false) {
+        uni.showModal({
+          title: '授权提示',
+          content: '需要您授权保存图片到相册，是否去设置中打开？',
+          success: (modalRes) => {
+            if (modalRes.confirm) {
+              uni.openSetting({
+                success: (settingRes) => {
+                  if (settingRes.authSetting['scope.writePhotosAlbum']) {
+                    saveToAlbum(filePath)
+                  } else {
+                    uni.showToast({ title: '您拒绝了授权', icon: 'none' })
+                  }
+                }
+              })
+            }
+          }
+        })
+      } else {
+        uni.authorize({
+          scope: 'scope.writePhotosAlbum',
+          success: () => {
+            saveToAlbum(filePath)
+          },
+          fail: () => {
+            uni.showToast({ title: '授权失败，无法保存', icon: 'none' })
+          }
+        })
+      }
+    }
+  })
+}
+
+function saveToAlbum(filePath) {
+  uni.showLoading({ title: '正在保存...' })
+  uni.saveImageToPhotosAlbum({
+    filePath,
+    success: () => {
+      uni.hideLoading()
+      uni.showToast({ title: '保存成功', icon: 'success' })
+    },
+    fail: () => {
+      uni.hideLoading()
+      uni.showToast({ title: '保存失败', icon: 'none' })
+    }
+  })
 }
 
 function goBack() {
